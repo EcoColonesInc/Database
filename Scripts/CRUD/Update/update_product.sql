@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION public.update_product(
     p_product_id uuid,
     p_product_name character varying DEFAULT NULL,
     p_description character varying DEFAULT NULL,
-    p_state public."State" DEFAULT NULL
+    p_state public."state" DEFAULT NULL
 )
 RETURNS public.product
 LANGUAGE plpgsql

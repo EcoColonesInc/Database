@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION public.update_affiliatedbusinesstransaction(
     p_product_amount numeric(10, 2) DEFAULT NULL, 
     p_transaction_code varchar(100) DEFAULT NULL, 
     p_updated_by uuid DEFAULT NULL,                      
-    p_state public."State" DEFAULT NULL       
+    p_state public."state" DEFAULT NULL       
 )
 RETURNS public.affiliatedbusinesstransaction    
 LANGUAGE plpgsql
