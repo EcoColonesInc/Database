@@ -7,8 +7,8 @@ CREATE TABLE public.affiliatedbusinesstransaction (
   affiliated_business_id uuid NOT NULL,
   currency_id uuid NOT NULL,
   product_id uuid NOT NULL,
-  total_price integer NOT NULL,
-  product_amount numeric NOT NULL,
+  total_price integer NOT NULL CHECK (total_price > 0),
+  product_amount numeric NOT NULL CHECK (product_amount > 0::numeric),
   transaction_code character varying NOT NULL UNIQUE,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -21,7 +21,6 @@ CREATE TABLE public.affiliatedbusinesstransaction (
   CONSTRAINT affiliatedbusinesstransaction_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.currency(currency_id),
   CONSTRAINT affiliatedbusinesstransaction_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id)
 );
-
 CREATE TABLE public.affiliatedbusinessxproduct (
   affiliated_business_x_prod uuid NOT NULL DEFAULT gen_random_uuid(),
   product_id uuid NOT NULL,
@@ -35,7 +34,6 @@ CREATE TABLE public.affiliatedbusinessxproduct (
   CONSTRAINT affiliatedbusinessxproduct_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id),
   CONSTRAINT affiliatedbusinessxproduct_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbussiness(affiliated_business_id)
 );
-
 CREATE TABLE public.affiliatedbussiness (
   affiliated_business_id uuid NOT NULL DEFAULT gen_random_uuid(),
   district_id uuid NOT NULL,
@@ -53,7 +51,6 @@ CREATE TABLE public.affiliatedbussiness (
   CONSTRAINT affiliatedbussiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
   CONSTRAINT affiliatedbussiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id)
 );
-
 CREATE TABLE public.businesstype (
   business_type_id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying,
@@ -63,7 +60,6 @@ CREATE TABLE public.businesstype (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT businesstype_pkey PRIMARY KEY (business_type_id)
 );
-
 CREATE TABLE public.city (
   city_id uuid NOT NULL DEFAULT gen_random_uuid(),
   province_id uuid NOT NULL,
@@ -75,7 +71,6 @@ CREATE TABLE public.city (
   CONSTRAINT city_pkey PRIMARY KEY (city_id),
   CONSTRAINT city_province_id_fkey FOREIGN KEY (province_id) REFERENCES public.province(province_id)
 );
-
 CREATE TABLE public.collectioncenter (
   collectioncenter_id uuid NOT NULL DEFAULT gen_random_uuid(),
   person_id uuid NOT NULL,
@@ -93,14 +88,13 @@ CREATE TABLE public.collectioncenter (
   CONSTRAINT collectioncenter_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
   CONSTRAINT collectioncenter_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id)
 );
-
 CREATE TABLE public.collectioncentertransaction (
   cc_transaction_id uuid NOT NULL DEFAULT gen_random_uuid(),
   person_id uuid,
   collection_center_id uuid NOT NULL,
   material_id uuid NOT NULL,
-  total_points integer NOT NULL,
-  material_amount numeric NOT NULL,
+  total_points integer NOT NULL CHECK (total_points > 0),
+  material_amount numeric NOT NULL CHECK (material_amount > 0::numeric),
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
@@ -110,7 +104,6 @@ CREATE TABLE public.collectioncentertransaction (
   CONSTRAINT collectioncentertransaction_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id),
   CONSTRAINT collectioncentertransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
 );
-
 CREATE TABLE public.collectioncenterxmaterial (
   collection_center_x_product_id uuid NOT NULL DEFAULT gen_random_uuid(),
   material_id uuid NOT NULL,
@@ -123,7 +116,6 @@ CREATE TABLE public.collectioncenterxmaterial (
   CONSTRAINT collectioncenterxmaterial_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id),
   CONSTRAINT collectioncenterxmaterial_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id)
 );
-
 CREATE TABLE public.country (
   country_id uuid NOT NULL DEFAULT gen_random_uuid(),
   country_name character varying NOT NULL,
@@ -133,18 +125,16 @@ CREATE TABLE public.country (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT country_pkey PRIMARY KEY (country_id)
 );
-
 CREATE TABLE public.currency (
   currency_id uuid NOT NULL DEFAULT gen_random_uuid(),
   currency_name character varying NOT NULL,
-  currency_exchange bigint NOT NULL,
+  currency_exchange bigint NOT NULL CHECK (currency_exchange > 0),
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT currency_pkey PRIMARY KEY (currency_id)
 );
-
 CREATE TABLE public.district (
   district_id uuid NOT NULL DEFAULT gen_random_uuid(),
   city_id uuid NOT NULL,
@@ -156,12 +146,11 @@ CREATE TABLE public.district (
   CONSTRAINT district_pkey PRIMARY KEY (district_id),
   CONSTRAINT district_city_id_fkey FOREIGN KEY (city_id) REFERENCES public.city(city_id)
 );
-
 CREATE TABLE public.material (
   material_id uuid NOT NULL DEFAULT gen_random_uuid(),
   unit_id uuid NOT NULL,
   name character varying NOT NULL,
-  equivalent_points integer,
+  equivalent_points integer CHECK (equivalent_points >= 0),
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
@@ -169,7 +158,6 @@ CREATE TABLE public.material (
   CONSTRAINT material_pkey PRIMARY KEY (material_id),
   CONSTRAINT material_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.unit(unit_id)
 );
-
 CREATE TABLE public.parameter (
   parameter_id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
@@ -180,7 +168,6 @@ CREATE TABLE public.parameter (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT parameter_pkey PRIMARY KEY (parameter_id)
 );
-
 CREATE TABLE public.person (
   user_id uuid NOT NULL,
   first_name character varying NOT NULL DEFAULT NULL::character varying,
@@ -203,14 +190,12 @@ CREATE TABLE public.person (
   CONSTRAINT person_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
   CONSTRAINT person_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
 );
-
 CREATE TABLE public.point (
-  person_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  point_amount bigint NOT NULL,
+  person_id uuid NOT NULL,
+  point_amount bigint NOT NULL CHECK (point_amount >= 0),
   CONSTRAINT point_pkey PRIMARY KEY (person_id),
   CONSTRAINT point_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
 );
-
 CREATE TABLE public.product (
   product_id uuid NOT NULL DEFAULT gen_random_uuid(),
   product_name character varying NOT NULL UNIQUE,
@@ -222,7 +207,6 @@ CREATE TABLE public.product (
   state USER-DEFINED,
   CONSTRAINT product_pkey PRIMARY KEY (product_id)
 );
-
 CREATE TABLE public.province (
   province_id uuid NOT NULL DEFAULT gen_random_uuid(),
   country_id uuid NOT NULL,
@@ -234,18 +218,16 @@ CREATE TABLE public.province (
   CONSTRAINT province_pkey PRIMARY KEY (province_id),
   CONSTRAINT province_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.country(country_id)
 );
-
 CREATE TABLE public.unit (
   unit_id uuid NOT NULL DEFAULT gen_random_uuid(),
   unit_name character varying NOT NULL,
-  unit_exchange integer NOT NULL,
+  unit_exchange integer NOT NULL CHECK (unit_exchange > 0),
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT unit_pkey PRIMARY KEY (unit_id)
 );
-
 CREATE TABLE public.userrecycling (
   user_recycling uuid NOT NULL DEFAULT gen_random_uuid(),
   person_id uuid NOT NULL,
