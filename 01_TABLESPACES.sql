@@ -1,278 +1,261 @@
-create table public.province (
-  province_id uuid not null,
-  country_id uuid not null,
-  province_name character varying not null,
-  created_by uuid not null,
-  created_at timestamp without time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  constraint province_pkey primary key (province_id),
-  constraint province_country_id_fkey foreign KEY (country_id) references country (country_id)
-) TABLESPACE pg_default;
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
-create table public.currency (
-  currency_id uuid not null,
-  currency_name character varying not null,
-  currency_exchange bigint not null,
-  created_by uuid not null,
-  created_at timestamp without time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  constraint currency_pkey primary key (currency_id)
-) TABLESPACE pg_default;
-
-create table public.city (
-  city_id uuid not null,
-  province_id uuid not null,
-  city_name character varying not null,
-  created_by uuid not null,
-  created_at timestamp without time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  constraint city_pkey primary key (city_id),
-  constraint city_province_id_fkey foreign KEY (province_id) references province (province_id)
-) TABLESPACE pg_default;
-
-create table public.district (
-  district_id uuid not null,
-  city_id uuid not null,
-  district_name character varying not null,
-  created_by uuid not null,
-  created_at timestamp without time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  constraint district_pkey primary key (district_id),
-  constraint district_city_id_fkey foreign KEY (city_id) references city (city_id)
-) TABLESPACE pg_default;
-
-
-create table public.country (
-  country_id uuid not null,
-  country_name character varying not null,
-  created_by uuid not null,
-  created_at timestamp without time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  constraint country_pkey primary key (country_id)
-) TABLESPACE pg_default;
-
-create table public.point (
-  user_id uuid not null,
-  point_amount bigint not null,
-  constraint point_pkey primary key (user_id),
-  constraint point_user_id_fkey foreign KEY (user_id) references "user" (user_id)
-) TABLESPACE pg_default;
-
-create table public.collectioncentertransaction (
-  cc_transaction_id uuid primary key not null,
-  person_id uuid null,
-  collection_center_id uuid null,
-  material_id uuid null,
-  total_points integer not null,
-  material_amount decimal (10,2) not null,
-  created_by uuid null,
-  created_at timestamp without time zone null default CURRENT_TIMESTAMP,
-  updated_by uuid null,
-  updated_at timestamp without time zone null default CURRENT_TIMESTAMP
+CREATE TABLE public.affiliatedbusinesstransaction (
+  ab_transaction_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  person_id uuid NOT NULL,
+  affiliated_business_id uuid NOT NULL,
+  currency_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  total_price integer NOT NULL,
+  product_amount numeric NOT NULL,
+  transaction_code character varying NOT NULL UNIQUE,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  state USER-DEFINED,
+  CONSTRAINT affiliatedbusinesstransaction_pkey PRIMARY KEY (ab_transaction_id),
+  CONSTRAINT affiliatedbusinesstransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
+  CONSTRAINT affiliatedbusinesstransaction_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbussiness(affiliated_business_id),
+  CONSTRAINT affiliatedbusinesstransaction_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.currency(currency_id),
+  CONSTRAINT affiliatedbusinesstransaction_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id)
 );
 
-create table public.user (
-  user_id uuid not null,
-  email character varying not null,
-  password character varying not null,
-  created_by uuid not null,
-  created_at timestamp with time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  role_id uuid null,
-  constraint user_pkey primary key (user_id)
-) TABLESPACE pg_default;
-
-create table UserRecycling(
-  user_recycling uuid primary key,
-  user_id uuid not null,
-  collection_center_id uuid not null,
-  amount_recycle decimal (10,2) not null,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
-)
-
-create table Parameter (
-  parameter_id uuid primary key,
-  name varchar(50) not null,
-  value uuid not null,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
-)
-
-create table State(
-  state_id uuid primary key,
-  name varchar(50) not null,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
-)
-
-create table AffiliatedBussiness (
-  affiliated_business_id UUID PRIMARY KEY,
-  district_id UUID NOT NULL,
-  business_type_id UUID NOT NULL,
-  affiliated_business_name VARCHAR(50) NOT NULL UNIQUE,
-  phone VARCHAR(50) NOT NULL,
-  manager_name VARCHAR(50) NOT NULL,
-  email VARCHAR(50) NOT NULL,
-  description VARCHAR(50),
-  created_by UUID,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_by UUID,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.affiliatedbusinessxproduct (
+  affiliated_business_x_prod uuid NOT NULL DEFAULT gen_random_uuid(),
+  product_id uuid NOT NULL,
+  affiliated_business_id uuid NOT NULL,
+  product_price integer NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT affiliatedbusinessxproduct_pkey PRIMARY KEY (affiliated_business_x_prod),
+  CONSTRAINT affiliatedbusinessxproduct_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id),
+  CONSTRAINT affiliatedbusinessxproduct_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbussiness(affiliated_business_id)
 );
 
-create table BusinessType(
-  business_type_type uuid primary key,
-  district_id uuid not null,
-  name varchar(50) not null, 
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
-)
-
-create table CollectionCenterXMaterial (
-  collection_center_x_product_id uuid primary key,
-  material_id uuid not null,
-  collection_center_id uuid not null,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
+CREATE TABLE public.affiliatedbussiness (
+  affiliated_business_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  district_id uuid NOT NULL,
+  business_type_id uuid NOT NULL,
+  affiliated_business_name character varying NOT NULL UNIQUE,
+  phone character varying NOT NULL,
+  manager_name character varying NOT NULL,
+  email character varying NOT NULL,
+  description character varying,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT affiliatedbussiness_pkey PRIMARY KEY (affiliated_business_id),
+  CONSTRAINT affiliatedbussiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
+  CONSTRAINT affiliatedbussiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id)
 );
 
-
-CREATE TABLE AffiliatedBusinessXProduct (
-    affiliated_business_x_prod UUID PRIMARY KEY,
-    product_id UUID NOT NULL,
-    affiliated_business_id UUID NOT NULL,
-    product_price INT NOT NULL,
-    created_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.businesstype (
+  business_type_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT businesstype_pkey PRIMARY KEY (business_type_id)
 );
 
-
-CREATE TABLE Product (
-    product_id UUID PRIMARY KEY,
-    state_id UUID NOT NULL,
-    product_name VARCHAR(50) UNIQUE,
-    description VARCHAR(100),
-    created_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.city (
+  city_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  province_id uuid NOT NULL,
+  city_name character varying NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT city_pkey PRIMARY KEY (city_id),
+  CONSTRAINT city_province_id_fkey FOREIGN KEY (province_id) REFERENCES public.province(province_id)
 );
 
-CREATE TABLE AffiliatedBusinessTransaction (
-    ab_transaction_id UUID PRIMARY KEY,
-    person_id UUID NOT NULL,
-    affiliated_business_id UUID NOT NULL,
-    currency_id UUID NOT NULL,
-    product_id UUID NOT NULL,
-    state_id UUID NOT NULL,
-    total_price INT NOT NULL,
-    product_amount DECIMAL(10,2) NOT NULL,
-    transaction_code VARCHAR(100) NOT NULL UNIQUE,
-    created_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.collectioncenter (
+  collectioncenter_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  person_id uuid NOT NULL,
+  district_id uuid NOT NULL,
+  name character varying NOT NULL,
+  phone character varying NOT NULL,
+  manager_name character varying NOT NULL,
+  latitude numeric NOT NULL,
+  longitude numeric NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT collectioncenter_pkey PRIMARY KEY (collectioncenter_id),
+  CONSTRAINT collectioncenter_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
+  CONSTRAINT collectioncenter_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id)
 );
 
-create table Unit(
-  unit_id uuid primary key,
-  unit_name varchar(50) not null,
-  unit_exchange int not null,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
-)
-
-create table public.role (
-  role_id uuid not null,
-  name character varying not null,
-  created_by uuid not null,
-  created_at timestamp without time zone not null,
-  uploaded_by uuid not null,
-  uploaded_at timestamp without time zone not null,
-  constraint role_pkey primary key (role_id)
-) TABLESPACE pg_default;
-
-create table Material(
-  material_id uuid primary key,
-  unit_id uuid not null,
-  name varchar(50) not null,
-  equivalent_points int,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
+CREATE TABLE public.collectioncentertransaction (
+  cc_transaction_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  person_id uuid,
+  collection_center_id uuid NOT NULL,
+  material_id uuid NOT NULL,
+  total_points integer NOT NULL,
+  material_amount numeric NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT collectioncentertransaction_pkey PRIMARY KEY (cc_transaction_id),
+  CONSTRAINT collectioncentertransaction_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id),
+  CONSTRAINT collectioncentertransaction_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id),
+  CONSTRAINT collectioncentertransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
 );
 
-CREATE TABLE TypeID (
-    type_id UUID PRIMARY KEY,
-    type_name VARCHAR(50) NOT NULL UNIQUE,
-    created_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.collectioncenterxmaterial (
+  collection_center_x_product_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  material_id uuid NOT NULL,
+  collection_center_id uuid NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT collectioncenterxmaterial_pkey PRIMARY KEY (collection_center_x_product_id),
+  CONSTRAINT collectioncenterxmaterial_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id),
+  CONSTRAINT collectioncenterxmaterial_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id)
 );
 
-CREATE TABLE Gender (
-    gender_id UUID PRIMARY KEY,
-    gender_name VARCHAR(50) NOT NULL UNIQUE,
-    created_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.country (
+  country_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  country_name character varying NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT country_pkey PRIMARY KEY (country_id)
 );
 
-CREATE TABLE Person (
-    user_id UUID PRIMARY KEY,
-    type_id UUID  NOT NULL,
-    photo_id UUID  NOT NULL,
-    gender_id UUID  NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    second_last_name VARCHAR(100) NOT NULL,
-    telephone_number VARCHAR(50) NOT NULL UNIQUE,
-    birth_date TIMESTAMP,
-    user_name VARCHAR(100) NOT NULL UNIQUE,
-    identification NUMERIC(11) NOT NULL UNIQUE,
-    created_by UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.currency (
+  currency_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  currency_name character varying NOT NULL,
+  currency_exchange bigint NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT currency_pkey PRIMARY KEY (currency_id)
 );
 
-create table CollectionCenter (
-  collectionCenter_Id uuid primary key,
-  user_Id uuid not null,
-  districtId uuid not null,
-  name varchar(50) not null,
-  phone varchar(50) not null,
-  manager_name varchar(50) not null,
-  latitude decimal (10,8) not null,
-  longitude decimal (10,8) not null,
-  created_by uuid not null,
-  created_at timestamp default current_timestamp,
-  updated_by uuid not null,
-  updated_at timestamp default current_timestamp
+CREATE TABLE public.district (
+  district_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  city_id uuid NOT NULL,
+  district_name character varying NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT district_pkey PRIMARY KEY (district_id),
+  CONSTRAINT district_city_id_fkey FOREIGN KEY (city_id) REFERENCES public.city(city_id)
 );
 
+CREATE TABLE public.material (
+  material_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  unit_id uuid NOT NULL,
+  name character varying NOT NULL,
+  equivalent_points integer,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT material_pkey PRIMARY KEY (material_id),
+  CONSTRAINT material_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.unit(unit_id)
+);
 
+CREATE TABLE public.parameter (
+  parameter_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL,
+  value uuid NOT NULL,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_by uuid NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT parameter_pkey PRIMARY KEY (parameter_id)
+);
+
+CREATE TABLE public.person (
+  user_id uuid NOT NULL,
+  first_name character varying NOT NULL DEFAULT NULL::character varying,
+  last_name character varying NOT NULL DEFAULT NULL::character varying,
+  second_last_name character varying NOT NULL DEFAULT NULL::character varying,
+  telephone_number character varying NOT NULL DEFAULT NULL::character varying UNIQUE,
+  birth_date date NOT NULL,
+  user_name character varying NOT NULL DEFAULT NULL::character varying UNIQUE,
+  identification numeric NOT NULL UNIQUE,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  password_updated_at timestamp with time zone DEFAULT now(),
+  role USER-DEFINED,
+  gender USER-DEFINED,
+  document_type USER-DEFINED,
+  CONSTRAINT person_pkey PRIMARY KEY (user_id),
+  CONSTRAINT person_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT person_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT person_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
+);
+
+CREATE TABLE public.point (
+  person_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  point_amount bigint NOT NULL,
+  CONSTRAINT point_pkey PRIMARY KEY (person_id),
+  CONSTRAINT point_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
+);
+
+CREATE TABLE public.product (
+  product_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  product_name character varying NOT NULL UNIQUE,
+  description character varying,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  state USER-DEFINED,
+  CONSTRAINT product_pkey PRIMARY KEY (product_id)
+);
+
+CREATE TABLE public.province (
+  province_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  country_id uuid NOT NULL,
+  province_name character varying NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT province_pkey PRIMARY KEY (province_id),
+  CONSTRAINT province_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.country(country_id)
+);
+
+CREATE TABLE public.unit (
+  unit_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  unit_name character varying NOT NULL,
+  unit_exchange integer NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT unit_pkey PRIMARY KEY (unit_id)
+);
+
+CREATE TABLE public.userrecycling (
+  user_recycling uuid NOT NULL DEFAULT gen_random_uuid(),
+  person_id uuid NOT NULL,
+  collection_center_id uuid NOT NULL,
+  amount_recycle numeric NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT userrecycling_pkey PRIMARY KEY (user_recycling),
+  CONSTRAINT userrecycling_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
+  CONSTRAINT userrecycling_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id)
+);
