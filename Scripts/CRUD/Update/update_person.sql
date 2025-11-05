@@ -7,9 +7,9 @@ CREATE OR REPLACE FUNCTION public.update_person(
     p_birth_date date DEFAULT NULL,
     p_user_name character varying DEFAULT NULL,
     p_identification numeric DEFAULT NULL,
-    p_role public."Role" DEFAULT NULL,
-    p_gender public."Gender" DEFAULT NULL,
-    p_document_type public."DocumentType" DEFAULT NULL
+    p_role public."role" DEFAULT NULL,
+    p_gender public."gender" DEFAULT NULL,
+    p_document_type public."document_type" DEFAULT NULL
 )
 RETURNS public.person
 LANGUAGE plpgsql
