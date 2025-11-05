@@ -6,15 +6,21 @@ CREATE OR REPLACE FUNCTION public.update_affiliatedbussiness(
     p_phone character varying DEFAULT NULL,
     p_manager_name character varying DEFAULT NULL,
     p_email character varying DEFAULT NULL,
-    p_description character varying DEFAULT NULL,
-    p_updated_by uuid
+    p_description character varying DEFAULT NULL
 )
 RETURNS public.affiliatedbussiness
 LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_row public.affiliatedbussiness;
+    user_uuid uuid;
 BEGIN
+    -- Autenticación
+    user_uuid := auth.uid();
+    IF user_uuid IS NULL THEN
+        RAISE EXCEPTION 'Usuario no autenticado';
+    END IF;
+
     UPDATE public.affiliatedbussiness AS t
     SET
         district_id = COALESCE(p_district_id, t.district_id),
@@ -24,7 +30,7 @@ BEGIN
         manager_name = COALESCE(p_manager_name, t.manager_name),
         email = COALESCE(p_email, t.email),
         description = COALESCE(p_description, t.description),
-        updated_by = p_updated_by,
+        updated_by = user_uuid,
         updated_at = NOW()
     WHERE t.affiliated_business_id = p_affiliated_business_id
     RETURNING t.* INTO v_row;

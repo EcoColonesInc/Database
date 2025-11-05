@@ -1,4 +1,3 @@
-
 CREATE OR REPLACE FUNCTION public.update_affiliatedbusinesstransaction(
     p_ab_transaction_id uuid,               
     p_person_id uuid DEFAULT NULL,          
@@ -8,8 +7,8 @@ CREATE OR REPLACE FUNCTION public.update_affiliatedbusinesstransaction(
     p_total_price integer DEFAULT NULL,    
     p_product_amount numeric(10, 2) DEFAULT NULL, 
     p_transaction_code varchar(100) DEFAULT NULL, 
-    p_updated_by uuid,                      
-    p_state public.State DEFAULT NULL       
+    p_updated_by uuid DEFAULT NULL,                      
+    p_state public."State" DEFAULT NULL       
 )
 RETURNS public.affiliatedbusinesstransaction    
 LANGUAGE plpgsql
@@ -17,6 +16,11 @@ AS $function$
 DECLARE
     v_row public.affiliatedbusinesstransaction;  -- Variable para capturar la fila actualizada
 BEGIN
+    -- Validación: updated_by es requerido lógicamente
+    IF p_updated_by IS NULL THEN
+        RAISE EXCEPTION 'updated_by no puede ser NULL';
+    END IF;
+
     -- Actualiza solo los campos provistos (no nulos). Los NULL conservan el valor actual mediante COALESCE.
     UPDATE public.affiliatedbusinesstransaction AS t
     SET
