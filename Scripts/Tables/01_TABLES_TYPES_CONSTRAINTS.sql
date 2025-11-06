@@ -17,11 +17,11 @@ CREATE TABLE public.person (
   user_id uuid NOT NULL,
   first_name character varying NOT NULL DEFAULT NULL::character varying,
   last_name character varying NOT NULL DEFAULT NULL::character varying,
-  second_last_name character varying NOT NULL DEFAULT NULL::character varying,
+  second_last_name character varying DEFAULT NULL::character varying,
   telephone_number character varying NOT NULL DEFAULT NULL::character varying UNIQUE,
   birth_date date NOT NULL CHECK (birth_date <= (CURRENT_DATE - '18 years'::interval)),
   user_name character varying NOT NULL DEFAULT NULL::character varying UNIQUE,
-  identification numeric NOT NULL UNIQUE,
+  identification character varying NOT NULL UNIQUE,
   created_by uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_by uuid,
@@ -31,9 +31,9 @@ CREATE TABLE public.person (
   gender USER-DEFINED,
   document_type USER-DEFINED,
   CONSTRAINT person_pkey PRIMARY KEY (user_id),
-  CONSTRAINT person_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT person_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
-  CONSTRAINT person_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id)
+  CONSTRAINT person_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
+  CONSTRAINT person_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Business Type Table
