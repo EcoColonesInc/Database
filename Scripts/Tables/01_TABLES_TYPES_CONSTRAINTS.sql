@@ -245,10 +245,7 @@ CREATE TABLE public.userrecycling (
   person_id uuid NOT NULL,
   collection_center_id uuid NOT NULL,
   amount_recycle numeric NOT NULL,
-  created_by uuid NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_by uuid,
-  updated_at timestamp with time zone DEFAULT now(),
+  date timestamp with time zone DEFAULT now(),
   CONSTRAINT userrecycling_pkey PRIMARY KEY (user_recycling),
   CONSTRAINT userrecycling_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
   CONSTRAINT userrecycling_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id)
