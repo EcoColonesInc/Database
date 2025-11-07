@@ -27,9 +27,9 @@ CREATE TABLE public.person (
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
   password_updated_at timestamp with time zone DEFAULT now(),
-  role USER-DEFINED,
-  gender USER-DEFINED,
-  document_type USER-DEFINED,
+  role public.role,
+  gender public.gender,
+  document_type public.document_type,
   CONSTRAINT person_pkey PRIMARY KEY (user_id),
   CONSTRAINT person_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
   CONSTRAINT person_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
@@ -79,7 +79,7 @@ CREATE TABLE public.product (
   created_at timestamp with time zone NOT NULL,
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  state USER-DEFINED,
+  state public.state,
   CONSTRAINT product_pkey PRIMARY KEY (product_id)
 );
 
@@ -280,7 +280,7 @@ CREATE TABLE public.affiliatedbusinesstransaction (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  state USER-DEFINED,
+  state public.state,
   CONSTRAINT affiliatedbusinesstransaction_pkey PRIMARY KEY (ab_transaction_id),
   CONSTRAINT affiliatedbusinesstransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
   CONSTRAINT affiliatedbusinesstransaction_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbussiness(affiliated_business_id),
