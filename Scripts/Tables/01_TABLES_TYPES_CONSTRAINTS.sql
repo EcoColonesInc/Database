@@ -100,11 +100,23 @@ CREATE TABLE public.parameter (
   parameter_id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
   value uuid NOT NULL,
-  created_by uuid,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_by uuid NOT NULL,
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT parameter_pkey PRIMARY KEY (parameter_id)
+);
+
+-- Binnacle Table
+CREATE TABLE public.binnacle (
+  binnacle_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  object_name character varying NOT NULL,
+  change_type character varying NOT NULL,
+  old_value text,
+  new_value text,
+  user_id uuid DEFAULT auth.uid(),
+  date timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT binnacle_pkey PRIMARY KEY (binnacle_id)
 );
 
 /*
@@ -131,6 +143,11 @@ CREATE TABLE public.material (
 CREATE TABLE public.point (
   person_id uuid NOT NULL,
   point_amount bigint NOT NULL CHECK (point_amount >= 0),
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT point_pkey PRIMARY KEY (person_id),
   CONSTRAINT point_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
 );
 
