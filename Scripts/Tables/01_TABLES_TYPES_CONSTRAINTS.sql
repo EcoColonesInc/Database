@@ -39,7 +39,7 @@ CREATE TABLE public.person (
 -- Business Type Table
 CREATE TABLE public.businesstype (
   business_type_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name character varying,
+  name character varying NOT NULL,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
@@ -76,10 +76,10 @@ CREATE TABLE public.product (
   product_name character varying NOT NULL UNIQUE,
   description character varying,
   created_by uuid NOT NULL,
-  created_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  state public.state,
+  state USER-DEFINED,
   CONSTRAINT product_pkey PRIMARY KEY (product_id)
 );
 
