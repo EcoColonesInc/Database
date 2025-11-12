@@ -79,7 +79,7 @@ CREATE TABLE public.product (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  state USER-DEFINED,
+  state public.state,
   CONSTRAINT product_pkey PRIMARY KEY (product_id)
 );
 
