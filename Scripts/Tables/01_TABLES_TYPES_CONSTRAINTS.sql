@@ -197,7 +197,7 @@ CREATE TABLE public.district (
  */
 
 -- Affiliated Business Table
-CREATE TABLE public.affiliatedbussiness (
+CREATE TABLE public.affiliatedbusiness (
   affiliated_business_id uuid NOT NULL DEFAULT gen_random_uuid(),
   district_id uuid NOT NULL,
   business_type_id uuid NOT NULL,
@@ -210,9 +210,9 @@ CREATE TABLE public.affiliatedbussiness (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT affiliatedbussiness_pkey PRIMARY KEY (affiliated_business_id),
-  CONSTRAINT affiliatedbussiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
-  CONSTRAINT affiliatedbussiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id)
+  CONSTRAINT affiliatedbusiness_pkey PRIMARY KEY (affiliated_business_id),
+  CONSTRAINT affiliatedbusiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
+  CONSTRAINT affiliatedbusiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id)
 );
 
 -- Collection Center Table
@@ -263,7 +263,7 @@ CREATE TABLE public.affiliatedbusinessxproduct (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT affiliatedbusinessxproduct_pkey PRIMARY KEY (affiliated_business_x_prod),
   CONSTRAINT affiliatedbusinessxproduct_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id),
-  CONSTRAINT affiliatedbusinessxproduct_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbussiness(affiliated_business_id)
+  CONSTRAINT affiliatedbusinessxproduct_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbusiness(affiliated_business_id)
 );
 
 -- Collection Center x Material Table
@@ -297,7 +297,7 @@ CREATE TABLE public.affiliatedbusinesstransaction (
   state public.state,
   CONSTRAINT affiliatedbusinesstransaction_pkey PRIMARY KEY (ab_transaction_id),
   CONSTRAINT affiliatedbusinesstransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
-  CONSTRAINT affiliatedbusinesstransaction_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbussiness(affiliated_business_id),
+  CONSTRAINT affiliatedbusinesstransaction_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbusiness(affiliated_business_id),
   CONSTRAINT affiliatedbusinesstransaction_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.currency(currency_id),
   CONSTRAINT affiliatedbusinesstransaction_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id)
 );
