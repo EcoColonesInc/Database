@@ -32,49 +32,59 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 /*
- * Store procedure to get the user's profile information.
- * It will be used in "Perfil de Usuario".
+ * Store procedure that gets the affiliated business transactions by affiliated business ID.
+ * It also filters the resultas by user_name, date, product and cost.
+ * It will be used in "Todas las transacciones en Comercio Afiliado".
  */
 
-CREATE OR REPLACE FUNCTION public.get_profile_info(p_user_id uuid)
+CREATE OR REPLACE FUNCTION public.get_affiliated_business_transactions(
+  p_affiliated_business_id uuid,
+  p_user_name text DEFAULT NULL,
+  p_date date DEFAULT NULL,
+  p_product_name text DEFAULT NULL,
+  p_total_price integer DEFAULT NULL
+)
 RETURNS TABLE (
+  user_name character varying,
   first_name character varying,
   last_name character varying,
-  second_last_name character varying,
-  user_name character varying,
-  email character varying,
-  document_type public.document_type,
-  identification character varying,
-  gender public.gender,
-  telephone_number character varying,
-  birth_date date,
-  acumulated_points bigint,
-  material_recycled numeric
-) AS $$
+  affiliated_business_name character varying,
+  currency_name character varying,
+  currency_exchange bigint,
+  product_name character varying,
+  total_price integer,
+  product_amount numeric,
+  transaction_code character varying,
+  state public.state,
+  created_at timestamp with time zone
+)
+AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    p.first_name,
-    p.last_name,
-    p.second_last_name,
-    p.user_name,
-    u.email,
-    p.document_type,
-    p.identification,
-    p.gender,
-    p.telephone_number,
-    p.birth_date,
-    COALESCE(po.point_amount, 0) AS acumulated_points,
-    COALESCE(SUM(cct.material_amount), 0) AS material_recycled
-  FROM public.person AS p
-  JOIN auth.users AS u
-    ON u.id = p.user_id
-  LEFT JOIN public.point AS po
-    ON po.person_id = p.user_id
-  LEFT JOIN public.collectioncentertransaction cct
-    ON cct.person_id = p.user_id
-  WHERE p.user_id = p_user_id
-  GROUP BY p.first_name, p.last_name, p.second_last_name, p.user_name, u.email, p.document_type, p.identification, p.gender, p.telephone_number, p.birth_date, po.point_amount;
+    per.user_name,
+    per.first_name,
+    per.last_name,
+    ab.affiliated_business_name,
+    cur.currency_name,
+    cur.currency_exchange,
+    prod.product_name,
+    abt.total_price,
+    abt.product_amount,
+    abt.transaction_code,
+    abt.state,
+    abt.created_at
+  FROM public.affiliatedbusinesstransaction abt
+  LEFT JOIN public.person per ON abt.person_id = per.user_id
+  LEFT JOIN public.affiliatedbusiness ab ON abt.affiliated_business_id = ab.affiliated_business_id
+  LEFT JOIN public.currency cur ON abt.currency_id = cur.currency_id
+  LEFT JOIN public.product prod ON abt.product_id = prod.product_id
+  WHERE abt.affiliated_business_id = p_affiliated_business_id
+    AND (p_user_name IS NULL OR per.user_name ILIKE ('%' || p_user_name || '%'))
+    AND (p_date IS NULL OR date(abt.created_at) = p_date)
+    AND (p_product_name IS NULL OR prod.product_name ILIKE ('%' || p_product_name || '%'))
+    AND (p_total_price IS NULL OR abt.total_price = p_total_price)
+  ORDER BY abt.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
