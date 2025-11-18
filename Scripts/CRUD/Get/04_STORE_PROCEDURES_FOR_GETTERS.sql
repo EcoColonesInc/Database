@@ -147,7 +147,11 @@ RETURNS TABLE (
   birth_date date,
   acumulated_points bigint,
   material_recycled numeric,
-  role public.role
+  role public.role,
+  district_name character varying,
+  city_name character varying,
+  province_name character varying,
+  country_name character varying
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -164,7 +168,11 @@ BEGIN
     p.birth_date,
     COALESCE(po.point_amount, 0) AS acumulated_points,
     COALESCE(SUM(cct.material_amount), 0) AS material_recycled,
-    p.role
+    p.role,
+    d.district_name,
+    ci.city_name,
+    pr.province_name,
+    co.country_name
   FROM public.person AS p
   JOIN auth.users AS u
     ON u.id = p.user_id
@@ -172,8 +180,16 @@ BEGIN
     ON po.person_id = p.user_id
   LEFT JOIN public.collectioncentertransaction cct
     ON cct.person_id = p.user_id
+  LEFT JOIN public.district d
+    ON p.district_id = d.district_id
+  LEFT JOIN public.city ci
+    ON d.city_id = ci.city_id
+  LEFT JOIN public.province pr
+    ON ci.province_id = pr.province_id
+  LEFT JOIN public.country co
+    ON pr.country_id = co.country_id
   WHERE p.user_id = p_user_id
-  GROUP BY p.first_name, p.last_name, p.second_last_name, p.user_name, u.email, p.document_type, p.identification, p.gender, p.telephone_number, p.birth_date, po.point_amount, p.role;
+  GROUP BY p.first_name, p.last_name, p.second_last_name, p.user_name, u.email, p.document_type, p.identification, p.gender, p.telephone_number, p.birth_date, po.point_amount, p.role, d.district_name, ci.city_name, pr.province_name, co.country_name;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
