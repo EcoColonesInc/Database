@@ -36,6 +36,14 @@ CREATE TABLE public.person (
   CONSTRAINT person_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
+-- Email Table
+CREATE TABLE public.email (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  email character varying NOT NULL,
+  CONSTRAINT email_pkey PRIMARY KEY (id)
+);
+
 -- Business Type Table
 CREATE TABLE public.businesstype (
   business_type_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -98,7 +106,7 @@ CREATE TABLE public.unit (
 -- Parameter Table
 CREATE TABLE public.parameter (
   parameter_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name character varying NOT NULL,
+  name character varying NOT NULL UNIQUE,
   value uuid NOT NULL,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -203,16 +211,18 @@ CREATE TABLE public.affiliatedbusiness (
   business_type_id uuid NOT NULL,
   affiliated_business_name character varying NOT NULL UNIQUE,
   phone character varying NOT NULL,
-  manager_name character varying NOT NULL,
-  email character varying NOT NULL,
-  description character varying,
+  email bigint NOT NULL,
+  description text,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
+  manager_id uuid,
   CONSTRAINT affiliatedbusiness_pkey PRIMARY KEY (affiliated_business_id),
-  CONSTRAINT affiliatedbusiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
-  CONSTRAINT affiliatedbusiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id)
+  CONSTRAINT affiliatedbussiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
+  CONSTRAINT affiliatedbussiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id),
+  CONSTRAINT affiliatedbusiness_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.person(user_id),
+  CONSTRAINT affiliatedbusiness_email_fkey FOREIGN KEY (email) REFERENCES public.email(id)
 );
 
 -- Collection Center Table
@@ -222,16 +232,19 @@ CREATE TABLE public.collectioncenter (
   district_id uuid NOT NULL,
   name character varying NOT NULL,
   phone character varying NOT NULL,
-  manager_name character varying NOT NULL,
+  manager_id uuid NOT NULL DEFAULT gen_random_uuid(),
   latitude numeric NOT NULL,
   longitude numeric NOT NULL,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
+  email bigint,
   CONSTRAINT collectioncenter_pkey PRIMARY KEY (collectioncenter_id),
   CONSTRAINT collectioncenter_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
-  CONSTRAINT collectioncenter_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id)
+  CONSTRAINT collectioncenter_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
+  CONSTRAINT collectioncenter_email_fkey FOREIGN KEY (email) REFERENCES public.email(id),
+  CONSTRAINT collectioncenter_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.person(user_id)
 );
 
 /*

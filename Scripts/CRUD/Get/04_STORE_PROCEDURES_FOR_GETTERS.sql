@@ -1,6 +1,13 @@
 -- Binnacle Getter
 
-CREATE OR REPLACE FUNCTION public.get_binnacle()
+CREATE OR REPLACE FUNCTION public.get_binnacle(
+  p_user_name character varying DEFAULT NULL,
+  p_start_date date DEFAULT NULL,
+  p_end_date date DEFAULT NULL,
+  p_start_time time DEFAULT NULL,
+  p_end_time time DEFAULT NULL,
+  p_change_type character varying DEFAULT NULL
+)
 RETURNS TABLE (
   binnacle_id uuid,
   object_name character varying,
@@ -25,6 +32,19 @@ BEGIN
   FROM public.binnacle AS b
   LEFT JOIN public.person AS p
     ON b.user_id = p.user_id
+  WHERE (
+    p_user_name IS NULL
+    OR (
+      (p.first_name IS NOT NULL OR p.last_name IS NOT NULL OR p.second_last_name IS NOT NULL)
+      AND CONCAT(p.first_name, ' ', p.last_name, ' ', COALESCE(p.second_last_name, '')) ILIKE '%' || p_user_name || '%'
+    )
+    OR (p.user_name IS NOT NULL AND p.user_name ILIKE '%' || p_user_name || '%')
+  )
+  AND (p_start_date IS NULL OR b.date::date >= p_start_date)
+  AND (p_end_date IS NULL OR b.date::date <= p_end_date)
+  AND (p_start_time IS NULL OR b.date::time >= p_start_time)
+  AND (p_end_time IS NULL OR b.date::time <= p_end_time)
+  AND (p_change_type IS NULL OR b.change_type ILIKE '%' || p_change_type || '%')
   ORDER BY b.date DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -99,6 +119,10 @@ BEGIN
   ORDER BY cxm.updated_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Getter for Parameter (Default_Currency)
+
+
 
 -- *********************************************************************
 
@@ -246,6 +270,26 @@ BEGIN
   ORDER BY cct.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+  -- Getter for Default Currency parameter
+
+  CREATE OR REPLACE FUNCTION public.get_default_currency()
+  RETURNS TABLE (
+    value bigint,
+    name character varying
+  ) AS $$
+  BEGIN
+    RETURN QUERY
+    SELECT
+      c.currency_name,
+      c.currency_exchange
+    FROM public.currency AS c
+    JOIN public.parameter AS p
+     ON c.currency_id = p.value
+    WHERE p.name = 'default_currency'
+    LIMIT 1;
+  END;
+  $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 
