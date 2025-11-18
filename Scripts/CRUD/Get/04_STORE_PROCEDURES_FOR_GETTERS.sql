@@ -16,6 +16,7 @@ RETURNS TABLE (
   new_value text,
   user_id uuid,
   full_name text,
+  user_name character varying,
   date timestamptz
 ) AS $$
 BEGIN
@@ -28,6 +29,7 @@ BEGIN
     b.new_value,
     b.user_id,
     CONCAT(p.first_name, ' ', p.last_name, ' ', COALESCE(p.second_last_name, '')) AS full_name,
+    p.user_name,
     b.date
   FROM public.binnacle AS b
   LEFT JOIN public.person AS p
