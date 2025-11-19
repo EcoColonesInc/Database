@@ -293,12 +293,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
   CREATE OR REPLACE FUNCTION public.get_default_currency()
   RETURNS TABLE (
-    value bigint,
-    name character varying
+    id uuid,
+    name character varying,
+    value bigint
   ) AS $$
   BEGIN
     RETURN QUERY
     SELECT
+      c.currency_id,
       c.currency_name,
       c.currency_exchange
     FROM public.currency AS c
