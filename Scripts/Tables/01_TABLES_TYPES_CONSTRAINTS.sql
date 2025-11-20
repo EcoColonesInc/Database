@@ -5,6 +5,18 @@ CREATE TYPE public.gender as ENUM('male', 'female', 'other');
 CREATE TYPE public.document_type as ENUM('passport', 'dimex', 'id');
 CREATE TYPE public.state as ENUM('active', 'inactive');
 
+-- Sequences
+
+CREATE SEQUENCE IF NOT EXISTS affiliatedbusinesstransaction_code_seq
+  START WITH 1
+  INCREMENT BY 1    
+  MINVALUE 1;
+
+CREATE SEQUENCE IF NOT EXISTS collectioncentertransaction_code_seq
+  START WITH 1
+  INCREMENT BY 1    
+  MINVALUE 1;
+
 -- Tables
 
 /*
@@ -27,21 +39,23 @@ CREATE TABLE public.person (
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
   password_updated_at timestamp with time zone DEFAULT now(),
-  role public.role,
-  gender public.gender,
-  document_type public.document_type,
+  role USER-DEFINED,
+  gender USER-DEFINED,
+  document_type USER-DEFINED,
+  district_id uuid,
   CONSTRAINT person_pkey PRIMARY KEY (user_id),
   CONSTRAINT person_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
   CONSTRAINT person_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id),
-  CONSTRAINT person_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT person_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT person_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id)
 );
 
 -- Email Table
 CREATE TABLE public.email (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  id_email bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   email character varying NOT NULL,
-  CONSTRAINT email_pkey PRIMARY KEY (id)
+  CONSTRAINT email_pkey PRIMARY KEY (id_email)
 );
 
 -- Business Type Table
@@ -69,7 +83,7 @@ CREATE TABLE public.currency (
 
 -- Country Table
 CREATE TABLE public.country (
-  country_id uuid NOT NULL,
+  country_id uuid NOT NULL DEFAULT gen_random_uuid(),
   country_name character varying NOT NULL,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -87,7 +101,7 @@ CREATE TABLE public.product (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  state public.state,
+  state USER-DEFINED,
   CONSTRAINT product_pkey PRIMARY KEY (product_id)
 );
 
@@ -222,7 +236,7 @@ CREATE TABLE public.affiliatedbusiness (
   CONSTRAINT affiliatedbussiness_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
   CONSTRAINT affiliatedbussiness_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id),
   CONSTRAINT affiliatedbusiness_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.person(user_id),
-  CONSTRAINT affiliatedbusiness_email_fkey FOREIGN KEY (email) REFERENCES public.email(id)
+  CONSTRAINT affiliatedbusiness_email_fkey FOREIGN KEY (email) REFERENCES public.email(id_email)
 );
 
 -- Collection Center Table
@@ -243,7 +257,7 @@ CREATE TABLE public.collectioncenter (
   CONSTRAINT collectioncenter_pkey PRIMARY KEY (collectioncenter_id),
   CONSTRAINT collectioncenter_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
   CONSTRAINT collectioncenter_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
-  CONSTRAINT collectioncenter_email_fkey FOREIGN KEY (email) REFERENCES public.email(id),
+  CONSTRAINT collectioncenter_email_fkey FOREIGN KEY (email) REFERENCES public.email(id_email),
   CONSTRAINT collectioncenter_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.person(user_id)
 );
 
@@ -299,36 +313,53 @@ CREATE TABLE public.affiliatedbusinesstransaction (
   person_id uuid NOT NULL,
   affiliated_business_id uuid NOT NULL,
   currency_id uuid NOT NULL,
-  product_id uuid NOT NULL,
   total_price integer NOT NULL CHECK (total_price > 0),
-  product_amount numeric NOT NULL CHECK (product_amount > 0::numeric),
-  transaction_code character varying NOT NULL UNIQUE,
+  transaction_code character varying NOT NULL DEFAULT ('TXN-'::text || lpad((nextval('affiliatedbusinesstransaction_code_seq'::regclass))::text, 3, '0'::text)) UNIQUE,
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
-  state public.state,
+  state USER-DEFINED,
   CONSTRAINT affiliatedbusinesstransaction_pkey PRIMARY KEY (ab_transaction_id),
-  CONSTRAINT affiliatedbusinesstransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id),
   CONSTRAINT affiliatedbusinesstransaction_affiliated_business_id_fkey FOREIGN KEY (affiliated_business_id) REFERENCES public.affiliatedbusiness(affiliated_business_id),
   CONSTRAINT affiliatedbusinesstransaction_currency_id_fkey FOREIGN KEY (currency_id) REFERENCES public.currency(currency_id),
-  CONSTRAINT affiliatedbusinesstransaction_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id)
+  CONSTRAINT affiliatedbusinesstransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
 );
 
 -- Collection Center Transaction Table
 CREATE TABLE public.collectioncentertransaction (
   cc_transaction_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  person_id uuid,
+  person_id uuid NOT NULL,
   collection_center_id uuid NOT NULL,
-  material_id uuid NOT NULL,
   total_points integer NOT NULL CHECK (total_points > 0),
-  material_amount numeric NOT NULL CHECK (material_amount > 0::numeric),
   created_by uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
   updated_at timestamp with time zone DEFAULT now(),
+  transaction_code character varying NOT NULL DEFAULT ('TXN-'::text || lpad((nextval('collectioncentertransaction_code_seq'::regclass))::text, 3, '0'::text)) UNIQUE,
   CONSTRAINT collectioncentertransaction_pkey PRIMARY KEY (cc_transaction_id),
-  CONSTRAINT collectioncentertransaction_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id),
   CONSTRAINT collectioncentertransaction_collection_center_id_fkey FOREIGN KEY (collection_center_id) REFERENCES public.collectioncenter(collectioncenter_id),
   CONSTRAINT collectioncentertransaction_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.person(user_id)
+);
+
+-- Affiliated Business Transaction Item Table
+CREATE TABLE public.affiliatedbusinesstransactionitem (
+  item_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  ab_transaction_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  product_amount integer NOT NULL CHECK (product_amount > 0),
+  CONSTRAINT affiliatedbusinesstransactionitem_pkey PRIMARY KEY (item_id),
+  CONSTRAINT affiliatedbusinesstransactionitem_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.product(product_id),
+  CONSTRAINT affiliatedbusinesstransactionitem_ab_transaction_id_fkey FOREIGN KEY (ab_transaction_id) REFERENCES public.affiliatedbusinesstransaction(ab_transaction_id)
+);
+
+-- Collection Center Transaction Item Table
+CREATE TABLE public.collectioncentertransactionitem (
+  item_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  cc_transaction_id uuid NOT NULL,
+  material_id uuid NOT NULL,
+  material_amount integer NOT NULL CHECK (material_amount > 0),
+  CONSTRAINT collectioncentertransactionitem_pkey PRIMARY KEY (item_id),
+  CONSTRAINT collectioncentertransactionitem_cc_transaction_id_fkey FOREIGN KEY (cc_transaction_id) REFERENCES public.collectioncentertransaction(cc_transaction_id),
+  CONSTRAINT collectioncentertransactionitem_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id)
 );

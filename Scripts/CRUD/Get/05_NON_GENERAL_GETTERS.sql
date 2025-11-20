@@ -17,17 +17,30 @@ BEGIN
     p.product_name,
     abxp.product_price,
     b.affiliated_business_name,
-    COALESCE(SUM(abt.product_amount), 0) AS total_quantity_sold,
+    
+    -- Cantidad total vendida por todos los ítems
+    SUM(abi.product_amount)::numeric AS total_quantity_sold,
+
+    -- Cantidad de veces que fue comprado (transacciones donde aparece)
     COUNT(*) AS times_purchased
-  FROM public.product AS p
-  JOIN affiliatedbusinessxproduct AS abxp
+
+  FROM public.affiliatedbusinesstransactionitem abi
+  JOIN public.product p
+    ON p.product_id = abi.product_id
+  JOIN public.affiliatedbusinessxproduct abxp
     ON abxp.product_id = p.product_id
-  JOIN affiliatedbusiness AS b
-    ON abxp.affiliated_business_id = b.affiliated_business_id
+  JOIN public.affiliatedbusiness b
+    ON b.affiliated_business_id = abxp.affiliated_business_id
   JOIN public.affiliatedbusinesstransaction abt
-    ON abt.product_id = p.product_id
-  GROUP BY p.product_name, abxp.product_price, b.affiliated_business_name
-  ORDER BY SUM(abt.product_amount) DESC;
+    ON abt.ab_transaction_id = abi.ab_transaction_id
+
+  GROUP BY 
+    p.product_name,
+    abxp.product_price,
+    b.affiliated_business_name
+
+  ORDER BY 
+    SUM(abi.product_amount) DESC;  -- más vendidos primero
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -51,9 +64,9 @@ RETURNS TABLE (
   affiliated_business_name character varying,
   currency_name character varying,
   currency_exchange bigint,
-  product_name character varying,
+  product_names text,
   total_price integer,
-  product_amount numeric,
+  total_product_amount numeric,
   transaction_code character varying,
   state public.state,
   created_at timestamp with time zone
@@ -68,23 +81,48 @@ BEGIN
     ab.affiliated_business_name,
     cur.currency_name,
     cur.currency_exchange,
-    prod.product_name,
-    abt.total_price,
-    abt.product_amount,
+
+    -- Combinar productos en una lista
+    string_agg(prod.product_name, ', ' ORDER BY prod.product_name) AS product_names,
+
+    -- total de la transacción viene de la cabecera
+    MAX(abt.total_price) AS total_price,
+
+    -- sumar total de productos del carrito
+    SUM(abi.product_amount)::numeric AS total_product_amount,
+
     abt.transaction_code,
-    abt.state,
-    abt.created_at
+    MAX(abt.state) AS state,
+    MAX(abt.created_at) AS created_at
+
   FROM public.affiliatedbusinesstransaction abt
-  LEFT JOIN public.person per ON abt.person_id = per.user_id
-  LEFT JOIN public.affiliatedbusiness ab ON abt.affiliated_business_id = ab.affiliated_business_id
-  LEFT JOIN public.currency cur ON abt.currency_id = cur.currency_id
-  LEFT JOIN public.product prod ON abt.product_id = prod.product_id
+  JOIN public.affiliatedbusinesstransactionitem abi
+      ON abi.ab_transaction_id = abt.ab_transaction_id
+  JOIN public.product prod
+      ON prod.product_id = abi.product_id
+  JOIN public.affiliatedbusiness ab
+      ON ab.affiliated_business_id = abt.affiliated_business_id
+  LEFT JOIN public.person per
+      ON per.user_id = abt.person_id
+  LEFT JOIN public.currency cur
+      ON cur.currency_id = abt.currency_id
+
   WHERE abt.affiliated_business_id = p_affiliated_business_id
     AND (p_user_name IS NULL OR per.user_name ILIKE ('%' || p_user_name || '%'))
     AND (p_date IS NULL OR date(abt.created_at) = p_date)
     AND (p_product_name IS NULL OR prod.product_name ILIKE ('%' || p_product_name || '%'))
     AND (p_total_price IS NULL OR abt.total_price = p_total_price)
-  ORDER BY abt.created_at DESC;
+
+  GROUP BY
+    per.user_name,
+    per.first_name,
+    per.last_name,
+    ab.affiliated_business_name,
+    cur.currency_name,
+    cur.currency_exchange,
+    abt.transaction_code
+
+  ORDER BY MAX(abt.created_at) DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -94,7 +132,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
   * It will be used in "Consultas de Usuario/Reporte de puntos por Usuario" and "Estadisticas".
  */
 
-CREATE OR REPLACE FUNCTION public.get_points_summary(
+CCREATE OR REPLACE FUNCTION public.get_points_summary(
   p_start_date timestamptz DEFAULT NULL,
   p_end_date timestamptz DEFAULT NULL
 )
@@ -110,21 +148,20 @@ AS $$
 BEGIN
   RETURN QUERY
   WITH c AS (
-    SELECT cc.person_id, COALESCE(SUM(cc.total_points), 0)::bigint AS acum
+    SELECT cc.person_id,
+           COALESCE(SUM(cc.total_points), 0)::bigint AS acum
     FROM public.collectioncentertransaction cc
-    WHERE cc.person_id IS NOT NULL
-      AND (p_start_date IS NULL OR cc.created_at >= p_start_date)
+    WHERE (p_start_date IS NULL OR cc.created_at >= p_start_date)
       AND (p_end_date IS NULL OR cc.created_at <= p_end_date)
     GROUP BY cc.person_id
   ), s AS (
     SELECT ab.person_id,
-          COALESCE(SUM(ab.total_price)::bigint, 0) AS spent
+           COALESCE(SUM(ab.total_price)::bigint, 0) AS spent
     FROM public.affiliatedbusinesstransaction ab
     JOIN public.parameter pa
-        ON pa.name = 'default_currency'
-        AND ab.currency_id = pa.value
-    WHERE ab.person_id IS NOT NULL
-      AND (p_start_date IS NULL OR ab.created_at >= p_start_date)
+      ON pa.name = 'default_currency'
+     AND ab.currency_id = pa.value
+    WHERE (p_start_date IS NULL OR ab.created_at >= p_start_date)
       AND (p_end_date IS NULL OR ab.created_at <= p_end_date)
     GROUP BY ab.person_id
   ), users AS (
@@ -143,14 +180,9 @@ BEGIN
     FROM users u
     LEFT JOIN public.person p ON p.user_id = u.person_id
   )
-  SELECT
-    per.first_name,
-    per.last_name,
-    per.acumulated_points,
-    per.spent_points,
-    per.difference,
-    per.total_points
+  SELECT *
   FROM per
-  ORDER BY per.acumulated_points DESC NULLS LAST;
+  ORDER BY acumulated_points DESC NULLS LAST;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+

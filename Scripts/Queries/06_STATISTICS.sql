@@ -87,8 +87,10 @@ SELECT
   EXTRACT(YEAR FROM ab.created_at)::int AS year,
   EXTRACT(MONTH FROM ab.created_at)::int AS month,
   TO_CHAR(ab.created_at, 'FMMonth') AS month_name,
-  COALESCE(SUM(ab.product_amount), 0) AS total_products
+  COALESCE(SUM(abi.product_amount), 0)::numeric AS total_products
 FROM public.affiliatedbusinesstransaction ab
+JOIN public.affiliatedbusinesstransactionitem abi
+  ON abi.ab_transaction_id = ab.ab_transaction_id
 WHERE EXTRACT(YEAR FROM ab.created_at)::int = p_year
 GROUP BY year, month, month_name
 ORDER BY month DESC;
@@ -108,9 +110,12 @@ LANGUAGE sql
 AS $$
 SELECT
   EXTRACT(YEAR FROM ab.created_at)::int AS year,
-  COALESCE(SUM(ab.product_amount), 0) AS total_products
+  COALESCE(SUM(abi.product_amount), 0)::numeric AS total_products
 FROM public.affiliatedbusinesstransaction ab
+JOIN public.affiliatedbusinesstransactionitem abi
+  ON abi.ab_transaction_id = ab.ab_transaction_id
 GROUP BY year
 ORDER BY year DESC;
 $$;
+
 

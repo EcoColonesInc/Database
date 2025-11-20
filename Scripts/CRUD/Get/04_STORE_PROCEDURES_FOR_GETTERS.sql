@@ -122,7 +122,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Getter for Parameter (Default_Currency)
+-- Getter for Default Currency parameter
+
+  CREATE OR REPLACE FUNCTION public.get_default_currency()
+  RETURNS TABLE (
+    id uuid,
+    name character varying,
+    value bigint
+  ) AS $$
+  BEGIN
+    RETURN QUERY
+    SELECT
+      c.currency_id,
+      c.currency_name,
+      c.currency_exchange
+    FROM public.currency AS c
+    JOIN public.parameter AS p
+     ON c.currency_id = p.value
+    WHERE p.name = 'default_currency'
+    LIMIT 1;
+  END;
+  $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 
@@ -167,7 +187,7 @@ BEGIN
     p.telephone_number,
     p.birth_date,
     COALESCE(po.point_amount, 0) AS acumulated_points,
-    COALESCE(SUM(cct.material_amount), 0) AS material_recycled,
+    COALESCE(SUM(ccti.material_amount), 0::numeric) AS material_recycled,
     p.role,
     d.district_name,
     ci.city_name,
@@ -178,8 +198,10 @@ BEGIN
     ON u.id = p.user_id
   LEFT JOIN public.point AS po
     ON po.person_id = p.user_id
-  LEFT JOIN public.collectioncentertransaction cct
-    ON cct.person_id = p.user_id
+  LEFT JOIN public.collectioncentertransaction cc_t
+    ON cc_t.person_id = p.user_id
+  LEFT JOIN public.collectioncentertransactionitem ccti
+    ON ccti.cc_transaction_id = cc_t.cc_transaction_id
   LEFT JOIN public.district d
     ON p.district_id = d.district_id
   LEFT JOIN public.city ci
@@ -189,7 +211,10 @@ BEGIN
   LEFT JOIN public.country co
     ON pr.country_id = co.country_id
   WHERE p.user_id = p_user_id
-  GROUP BY p.first_name, p.last_name, p.second_last_name, p.user_name, u.email, p.document_type, p.identification, p.gender, p.telephone_number, p.birth_date, po.point_amount, p.role, d.district_name, ci.city_name, pr.province_name, co.country_name;
+  GROUP BY p.first_name, p.last_name, p.second_last_name, p.user_name, u.email,
+           p.document_type, p.identification, p.gender, p.telephone_number,
+           p.birth_date, po.point_amount, p.role, d.district_name,
+           ci.city_name, pr.province_name, co.country_name;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -209,9 +234,9 @@ RETURNS TABLE (
   affiliated_business_name character varying,
   currency_name character varying,
   currency_exchange bigint,
-  product_name character varying,
+  product_names text,
   total_price integer,
-  product_amount numeric,
+  total_product_amount numeric,
   transaction_code character varying,
   state public.state,
   created_at timestamp with time zone
@@ -225,24 +250,45 @@ BEGIN
     ab.affiliated_business_name,
     c.currency_name,
     c.currency_exchange,
-    pr.product_name,
-    abt.total_price,
-    abt.product_amount,
+
+    -- Group concatenated product names
+    string_agg(pr.product_name, ', ' ORDER BY pr.product_name) AS product_names,
+
+    -- Total price of the transaction (header)
+    MAX(abt.total_price) AS total_price,
+
+    -- Sum of all item quantities
+    SUM(abi.product_amount)::numeric AS total_product_amount,
+
     abt.transaction_code,
-    abt.state,
-    abt.created_at
+    MAX(abt.state) AS state,
+    MAX(abt.created_at) AS created_at
+
   FROM public.affiliatedbusinesstransaction abt
+  JOIN public.affiliatedbusinesstransactionitem abi
+    ON abi.ab_transaction_id = abt.ab_transaction_id
+  JOIN public.product pr
+    ON pr.product_id = abi.product_id
   JOIN public.person p
     ON p.user_id = abt.person_id
   JOIN public.affiliatedbusiness ab
     ON ab.affiliated_business_id = abt.affiliated_business_id
   JOIN public.currency c
     ON c.currency_id = abt.currency_id
-  JOIN public.product pr
-    ON pr.product_id = abt.product_id
+
   WHERE abt.person_id = p_user_id
     AND (p_date IS NULL OR abt.created_at::date = p_date)
-  ORDER BY abt.created_at DESC;
+
+  GROUP BY
+    p.user_name,
+    p.first_name,
+    p.last_name,
+    ab.affiliated_business_name,
+    c.currency_name,
+    c.currency_exchange,
+    abt.transaction_code
+
+  ORDER BY MAX(abt.created_at) DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -260,9 +306,10 @@ RETURNS TABLE (
   first_name character varying,
   last_name character varying,
   collection_center_name character varying,
-  material_name character varying,
+  material_names text,
   total_points integer,
-  material_amount numeric,
+  total_material_amount numeric,
+  transaction_code character varying,
   created_at timestamp with time zone
 ) AS $$
 BEGIN
@@ -272,44 +319,40 @@ BEGIN
     p.first_name,
     p.last_name,
     cc.name AS collection_center_name,
-    m.name AS material_name,
-    cct.total_points,
-    cct.material_amount,
-    cct.created_at
+
+    -- Unir materiales de la transacción
+    string_agg(m.name, ', ' ORDER BY m.name) AS material_names,
+
+    -- total_points está en cabecera
+    MAX(cct.total_points) AS total_points,
+
+    -- suma total del material entregado
+    SUM(ccti.material_amount)::numeric AS total_material_amount,
+
+    cct.transaction_code,
+    MAX(cct.created_at) AS created_at
+
   FROM public.collectioncentertransaction cct
+  JOIN public.collectioncentertransactionitem ccti
+    ON ccti.cc_transaction_id = cct.cc_transaction_id
+  JOIN public.material m
+    ON m.material_id = ccti.material_id
   LEFT JOIN public.person p
     ON p.user_id = cct.person_id
   JOIN public.collectioncenter cc
     ON cc.collectioncenter_id = cct.collection_center_id
-  JOIN public.material m
-    ON m.material_id = cct.material_id
+
   WHERE cct.person_id = p_user_id
     AND (p_date IS NULL OR cct.created_at::date = p_date)
-  ORDER BY cct.created_at DESC;
+
+  GROUP BY
+    p.user_name,
+    p.first_name,
+    p.last_name,
+    cc.name,
+    cct.transaction_code
+
+  ORDER BY MAX(cct.created_at) DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-  -- Getter for Default Currency parameter
-
-  CREATE OR REPLACE FUNCTION public.get_default_currency()
-  RETURNS TABLE (
-    id uuid,
-    name character varying,
-    value bigint
-  ) AS $$
-  BEGIN
-    RETURN QUERY
-    SELECT
-      c.currency_id,
-      c.currency_name,
-      c.currency_exchange
-    FROM public.currency AS c
-    JOIN public.parameter AS p
-     ON c.currency_id = p.value
-    WHERE p.name = 'default_currency'
-    LIMIT 1;
-  END;
-  $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
 
