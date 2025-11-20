@@ -86,7 +86,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Materials from Collection Center by unit_id
+-- Materials from Collection Center by collection_center_id
 
 CREATE OR REPLACE FUNCTION public.get_collectioncenterxmaterial(p_collection_center_id uuid)
 RETURNS TABLE (
@@ -144,6 +144,205 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
   END;
   $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Getter for All Affiliated Business Transactions
+
+CREATE OR REPLACE FUNCTION public.get_all_affiliated_business_transactions()
+RETURNS TABLE (
+  user_name character varying,
+  first_name character varying,
+  last_name character varying,
+  affiliated_business_name character varying,
+  currency_name character varying,
+  currency_exchange bigint,
+  product_names text,
+  total_product_amount numeric,
+  total_price integer,
+  transaction_code character varying,
+  state public.state,
+  created_at timestamp with time zone
+)
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.user_name,
+    p.first_name,
+    p.last_name,
+    ab.affiliated_business_name,
+    c.currency_name,
+    c.currency_exchange,
+    string_agg(prod.product_name, ', ' ORDER BY prod.product_name),
+    SUM(abi.product_amount)::numeric AS total_product_amount,
+    MAX(abt.total_price) AS total_price,
+    abt.transaction_code,
+    MAX(abt.state),
+    MAX(abt.created_at)
+  FROM affiliatedbusinesstransaction abt
+  JOIN affiliatedbusinesstransactionitem abi 
+    ON abi.ab_transaction_id = abt.ab_transaction_id
+  JOIN product prod 
+    ON prod.product_id = abi.product_id
+  LEFT JOIN person p 
+    ON p.user_id = abt.person_id
+  JOIN affiliatedbusiness ab 
+    ON ab.affiliated_business_id = abt.affiliated_business_id
+  JOIN currency c 
+    ON c.currency_id = abt.currency_id
+  GROUP BY 
+    abt.ab_transaction_id,
+    p.user_name, p.first_name, p.last_name,
+    ab.affiliated_business_name,
+    c.currency_name, c.currency_exchange
+  ORDER BY MAX(abt.created_at) DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Getter for All Collection Center Transactions
+
+CREATE OR REPLACE FUNCTION public.get_all_collection_center_transactions()
+RETURNS TABLE (
+  user_name character varying,
+  first_name character varying,
+  last_name character varying,
+  collection_center_name character varying,
+  material_names text,
+  total_material_amount numeric,
+  total_points integer,
+  transaction_code character varying,
+  created_at timestamp with time zone
+)
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.user_name,
+    p.first_name,
+    p.last_name,
+    cc.name AS collection_center_name,
+    string_agg(m.name, ', ' ORDER BY m.name) AS material_names,
+    SUM(ccti.material_amount)::numeric AS total_material_amount,
+    MAX(cct.total_points) AS total_points,
+    cct.transaction_code,
+    MAX(cct.created_at)
+  FROM collectioncentertransaction cct
+  JOIN collectioncentertransactionitem ccti
+    ON ccti.cc_transaction_id = cct.cc_transaction_id
+  JOIN material m 
+    ON m.material_id = ccti.material_id
+  LEFT JOIN person p 
+    ON p.user_id = cct.person_id
+  JOIN collectioncenter cc 
+    ON cc.collectioncenter_id = cct.collection_center_id
+  GROUP BY 
+    cct.cc_transaction_id,
+    p.user_name, p.first_name, p.last_name,
+    cc.name
+  ORDER BY MAX(cct.created_at) DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Getter for Transactions by Affiliated Business ID
+
+CREATE OR REPLACE FUNCTION public.get_transactions_by_affiliated_business_id(
+  p_affiliated_business_id uuid
+)
+RETURNS TABLE (
+  user_name character varying,
+  first_name character varying,
+  last_name character varying,
+  affiliated_business_name character varying,
+  currency_name character varying,
+  currency_exchange bigint,
+  product_names text,
+  total_product_amount numeric,
+  total_price integer,
+  transaction_code character varying,
+  state public.state,
+  created_at timestamp with time zone
+)
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.user_name,
+    p.first_name,
+    p.last_name,
+    ab.affiliated_business_name,
+    c.currency_name,
+    c.currency_exchange,
+    string_agg(prod.product_name, ', ' ORDER BY prod.product_name),
+    SUM(abi.product_amount)::numeric,
+    MAX(abt.total_price),
+    abt.transaction_code,
+    MAX(abt.state),
+    MAX(abt.created_at)
+  FROM affiliatedbusinesstransaction abt
+  JOIN affiliatedbusinesstransactionitem abi 
+      ON abi.ab_transaction_id = abt.ab_transaction_id
+  JOIN product prod 
+      ON prod.product_id = abi.product_id
+  LEFT JOIN person p 
+      ON p.user_id = abt.person_id
+  JOIN affiliatedbusiness ab 
+      ON ab.affiliated_business_id = abt.affiliated_business_id
+  JOIN currency c 
+      ON c.currency_id = abt.currency_id
+  WHERE ab.affiliated_business_id = p_affiliated_business_id
+  GROUP BY 
+    abt.ab_transaction_id,
+    p.user_name, p.first_name, p.last_name,
+    ab.affiliated_business_name,
+    c.currency_name, c.currency_exchange
+  ORDER BY MAX(abt.created_at) DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Getter for Transactions by Collection Center ID
+
+CREATE OR REPLACE FUNCTION public.get_transactions_by_collection_center_id(
+  p_collection_center_id uuid
+)
+RETURNS TABLE (
+  user_name character varying,
+  first_name character varying,
+  last_name character varying,
+  collection_center_name character varying,
+  material_names text,
+  total_material_amount numeric,
+  total_points integer,
+  transaction_code character varying,
+  created_at timestamp with time zone
+)
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.user_name,
+    p.first_name,
+    p.last_name,
+    cc.name AS collection_center_name,
+    string_agg(m.name, ', ' ORDER BY m.name),
+    SUM(ccti.material_amount)::numeric,
+    MAX(cct.total_points),
+    cct.transaction_code,
+    MAX(cct.created_at)
+  FROM collectioncentertransaction cct
+  JOIN collectioncentertransactionitem ccti
+    ON ccti.cc_transaction_id = cct.cc_transaction_id
+  JOIN material m 
+    ON m.material_id = ccti.material_id
+  LEFT JOIN person p 
+    ON p.user_id = cct.person_id
+  JOIN collectioncenter cc 
+    ON cc.collectioncenter_id = cct.collection_center_id
+  WHERE cc.collectioncenter_id = p_collection_center_id
+  GROUP BY 
+    cct.cc_transaction_id,
+    p.user_name, p.first_name, p.last_name,
+    cc.name
+  ORDER BY MAX(cct.created_at) DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- *********************************************************************
