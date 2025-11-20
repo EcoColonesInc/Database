@@ -151,6 +151,6 @@ BEGIN
     per.difference,
     per.total_points
   FROM per
-  ORDER BY per.acumulated_points NULLS LAST;
+  ORDER BY per.acumulated_points DESC NULLS LAST;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
