@@ -88,3 +88,69 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+/*
+ * Function that returns a summary of points accumulated and spent by users 
+ * within an optional date range.
+  * It will be used in "Consultas de Usuario/Reporte de puntos por Usuario" and "Estadisticas".
+ */
+
+CREATE OR REPLACE FUNCTION public.get_points_summary(
+  p_start_date timestamptz DEFAULT NULL,
+  p_end_date timestamptz DEFAULT NULL
+)
+RETURNS TABLE (
+  first_name character varying,
+  last_name character varying,
+  acumulated_points bigint,
+  spent_points bigint,
+  difference bigint,
+  total_points bigint
+)
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH c AS (
+    SELECT cc.person_id, COALESCE(SUM(cc.total_points), 0)::bigint AS acum
+    FROM public.collectioncentertransaction cc
+    WHERE cc.person_id IS NOT NULL
+      AND (p_start_date IS NULL OR cc.created_at >= p_start_date)
+      AND (p_end_date IS NULL OR cc.created_at <= p_end_date)
+    GROUP BY cc.person_id
+  ), s AS (
+    SELECT ab.person_id,
+          COALESCE(SUM(ab.total_price)::bigint, 0) AS spent
+    FROM public.affiliatedbusinesstransaction ab
+    JOIN public.parameter pa
+        ON pa.name = 'default_currency'
+        AND ab.currency_id = pa.value
+    WHERE ab.person_id IS NOT NULL
+      AND (p_start_date IS NULL OR ab.created_at >= p_start_date)
+      AND (p_end_date IS NULL OR ab.created_at <= p_end_date)
+    GROUP BY ab.person_id
+  ), users AS (
+    SELECT COALESCE(c.person_id, s.person_id) AS person_id,
+           COALESCE(c.acum, 0) AS acumulated_points,
+           COALESCE(s.spent, 0) AS spent_points
+    FROM c
+    FULL JOIN s ON c.person_id = s.person_id
+  ), per AS (
+    SELECT p.first_name,
+           p.last_name,
+           u.acumulated_points,
+           u.spent_points,
+           (u.acumulated_points - u.spent_points) AS difference,
+           (u.acumulated_points + u.spent_points) AS total_points
+    FROM users u
+    LEFT JOIN public.person p ON p.user_id = u.person_id
+  )
+  SELECT
+    per.first_name,
+    per.last_name,
+    per.acumulated_points,
+    per.spent_points,
+    per.difference,
+    per.total_points
+  FROM per
+  ORDER BY per.acumulated_points NULLS LAST;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
