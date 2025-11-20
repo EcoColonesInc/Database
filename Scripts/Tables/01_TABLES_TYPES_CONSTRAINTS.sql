@@ -363,3 +363,34 @@ CREATE TABLE public.collectioncentertransactionitem (
   CONSTRAINT collectioncentertransactionitem_cc_transaction_id_fkey FOREIGN KEY (cc_transaction_id) REFERENCES public.collectioncentertransaction(cc_transaction_id),
   CONSTRAINT collectioncentertransactionitem_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id)
 );
+
+/*
+ * The following SQL script creates the request table.
+ */
+ 
+ -- Request Table
+ CREATE TABLE public.request (
+  request_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  district_id uuid NOT NULL,
+  business_type_id uuid,
+  name character varying NOT NULL,
+  phone character varying NOT NULL,
+  email character varying NOT NULL,
+  description character varying NOT NULL,
+  manager character varying NOT NULL,
+  latitude numeric,
+  longitude numeric,
+  CONSTRAINT request_pkey PRIMARY KEY (request_id),
+  CONSTRAINT request_district_id_fkey FOREIGN KEY (district_id) REFERENCES public.district(district_id),
+  CONSTRAINT request_business_type_id_fkey FOREIGN KEY (business_type_id) REFERENCES public.businesstype(business_type_id)
+);
+
+-- Request Material Table
+CREATE TABLE public.request_material (
+  request_material_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  request_id uuid NOT NULL,
+  material_id uuid NOT NULL,
+  CONSTRAINT request_material_pkey PRIMARY KEY (request_material_id),
+  CONSTRAINT request_material_material_id_fkey FOREIGN KEY (material_id) REFERENCES public.material(material_id),
+  CONSTRAINT request_material_request_id_fkey FOREIGN KEY (request_id) REFERENCES public.request(request_id)
+);

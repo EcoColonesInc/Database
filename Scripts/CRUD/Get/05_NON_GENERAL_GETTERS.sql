@@ -132,7 +132,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
   * It will be used in "Consultas de Usuario/Reporte de puntos por Usuario" and "Estadisticas".
  */
 
-CCREATE OR REPLACE FUNCTION public.get_points_summary(
+CREATE OR REPLACE FUNCTION public.get_points_summary(
   p_start_date timestamptz DEFAULT NULL,
   p_end_date timestamptz DEFAULT NULL
 )
@@ -186,3 +186,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+/*
+ * Function to get the most recycled materials grouped by collection center.
+ * Returns collection_center_name, material_name and total amount (or weight).
+ * Supports optional filters: collection_center_id, start/end timestamps and limit.
+ */
+
+CREATE OR REPLACE FUNCTION public.get_most_recycled_materials()
+RETURNS TABLE (
+  collection_center_name character varying,
+  material_name character varying,
+  total_amount numeric
+)
+AS $$
+  SELECT
+    cc.collection_center_name,
+    m.material_name,
+    SUM(ci.material_amount)::numeric AS total_amount
+  FROM public.collectioncentertransaction t
+  JOIN public.collectioncentertransactionitem ci
+    ON ci.cc_transaction_id = t.cc_transaction_id
+  JOIN public.collectioncenter cc
+    ON cc.collectioncenter_id = t.collection_center_id
+  JOIN public.material m
+    ON m.material_id = ci.material_id
+  GROUP BY cc.collection_center_name, m.material_name
+  ORDER BY SUM(ci.material_amount) DESC
+  LIMIT 5; -- Top 5 overall
+$$ LANGUAGE sql SECURITY DEFINER;
