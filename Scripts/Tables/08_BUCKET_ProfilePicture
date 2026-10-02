@@ -1,0 +1,29 @@
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('profile_pictures', 'profile_pictures', true);
+
+CREATE POLICY "Authenticated users can upload profile pictures"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'profile_pictures'
+);
+
+CREATE POLICY "Authenticated users can update profile pictures"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'profile_pictures'
+)
+WITH CHECK (
+  bucket_id = 'profile_pictures'
+);
+
+CREATE POLICY "Authenticated users can delete profile pictures"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'profile_pictures'
+);
