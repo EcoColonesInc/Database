@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.update_affiliatedbussiness(
+CREATE OR REPLACE FUNCTION public.update_affiliatedbusiness(
     p_affiliated_business_id uuid,
     p_district_id uuid DEFAULT NULL,
     p_business_type_id uuid DEFAULT NULL,
@@ -8,11 +8,11 @@ CREATE OR REPLACE FUNCTION public.update_affiliatedbussiness(
     p_email character varying DEFAULT NULL,
     p_description character varying DEFAULT NULL
 )
-RETURNS public.affiliatedbussiness
+RETURNS public.affiliatedbusiness
 LANGUAGE plpgsql
 AS $function$
 DECLARE
-    v_row public.affiliatedbussiness;
+    v_row public.affiliatedbusiness;
     user_uuid uuid;
 BEGIN
     -- Autenticación
@@ -21,7 +21,7 @@ BEGIN
         RAISE EXCEPTION 'Usuario no autenticado';
     END IF;
 
-    UPDATE public.affiliatedbussiness AS t
+    UPDATE public.affiliatedbusiness AS t
     SET
         district_id = COALESCE(p_district_id, t.district_id),
         business_type_id = COALESCE(p_business_type_id, t.business_type_id),
@@ -36,7 +36,7 @@ BEGIN
     RETURNING t.* INTO v_row;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'affiliatedbussiness % not found', p_affiliated_business_id;
+        RAISE EXCEPTION 'affiliatedbusiness % not found', p_affiliated_business_id;
     END IF;
 
     RETURN v_row;
