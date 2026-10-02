@@ -200,8 +200,8 @@ RETURNS TABLE (
 )
 AS $$
   SELECT
-    cc.collection_center_name,
-    m.material_name,
+    cc.name,
+    m.name,
     SUM(ci.material_amount)::numeric AS total_amount
   FROM public.collectioncentertransaction t
   JOIN public.collectioncentertransactionitem ci
@@ -210,7 +210,7 @@ AS $$
     ON cc.collectioncenter_id = t.collection_center_id
   JOIN public.material m
     ON m.material_id = ci.material_id
-  GROUP BY cc.collection_center_name, m.material_name
+  GROUP BY cc.name, m.name
   ORDER BY SUM(ci.material_amount) DESC
   LIMIT 5; -- Top 5 overall
 $$ LANGUAGE sql SECURITY DEFINER;
