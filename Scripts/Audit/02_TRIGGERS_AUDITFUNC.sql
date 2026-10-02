@@ -139,10 +139,10 @@ on public.district
 for each row
 execute function public.register_changes();
 
--- Trigger for AffiliatedBussiness table
-create trigger trg_affiliatedbussiness_action
+-- Trigger for AffiliatedBusiness table
+create trigger trg_affiliatedbusiness_action
 before insert or update or delete
-on public.affiliatedbussiness
+on public.affiliatedbusiness
 for each row
 execute function public.register_changes();
 
@@ -180,4 +180,3 @@ before insert or update or delete
 on public.collectioncentertransaction
 for each row
 execute function public.register_changes();
-
